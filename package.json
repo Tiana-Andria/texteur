@@ -43,5 +43,8 @@
     "> 1%",
     "last 2 versions",
     "not dead"
-  ]
+  ],
+  "dependencies": {
+    "vue-document-editor": "^2.3.1"
+  }
 }
