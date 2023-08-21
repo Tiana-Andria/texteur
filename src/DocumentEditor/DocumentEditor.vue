@@ -234,13 +234,13 @@ export default {
       // Save the assigned color class for the current identifier to localStorage
       localStorage.setItem(`user_${identifier}_color`, randomColorClass);
       return randomColorClass;
-},
+  },
 
-    updateContent(newContent) {
+  updateContent(newContent) {
       // Mettre à jour le contenu et ajuster les pages en conséquence
       this.content = newContent;
       this.resetContent();
-    },
+  },
 
     input(e) 
     {
