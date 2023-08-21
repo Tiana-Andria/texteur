@@ -45,6 +45,7 @@
     "not dead"
   ],
   "dependencies": {
-    "vue-document-editor": "^2.3.1"
+    "vue-document-editor": "^2.3.1",
+    "vue-native-websocket": "^2.0.15"
   }
 }

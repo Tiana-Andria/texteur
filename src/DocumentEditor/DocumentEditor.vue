@@ -11,16 +11,21 @@
     <!-- Document editor -->
     <div class="content" ref="content" :contenteditable="editable" :style="page_style(-1)" @input="input" @keyup="process_current_text_style" @keydown="keydown">
       <!-- This is a Vue "hoisted" static <div> which contains every page of the document and can be modified by the DOM -->
+        <div v-for="(cursorPos, userId) in userCursors" :key="userId" class="user-cursor">
+          <div class="cursor" :style="{ top: cursorPos + 'px' }"></div>
+          <div class="cursor-username">{{ userId }}</div>
+        </div>
     </div>
-
-    <!-- Items related to the document editor (widgets, ...) can be inserted here -->
-
   </div>
 </template>
 
 <script>
 import { defineCustomElement } from 'vue';
-import { move_children_forward_recursively, move_children_backwards_with_merging } from './imports/page-transition-mgmt.js';
+import {
+  move_children_forward_recursively,
+  move_children_backwards_with_merging,
+} from './imports/page-transition-mgmt.js';
+
 
 export default {
 
@@ -79,7 +84,11 @@ export default {
       editor_width: 0, // real measured with of an empty editor <div> in px
       prevent_next_content_update_from_parent: false, // workaround to avoid infinite update loop
       current_text_style: false, // contains the style at caret position
-      printing_mode: false, // flag set when page is rendering in printing mode
+      printing_mode: false,
+      documentContent: '',
+      socket: null,
+      currentUserId: null,
+      userCursors: {},
     }
   },
 
@@ -91,17 +100,7 @@ export default {
     window.addEventListener("click", this.process_current_text_style);
     window.addEventListener("beforeprint", this.before_print);
     window.addEventListener("afterprint", this.after_print);
-  },
-
-  beforeUpdate () {
-    this.pages_overlay_refs = [];
-  },
-
-  beforeUnmount () {
-    window.removeEventListener("resize", this.update_editor_width);
-    window.removeEventListener("click", this.process_current_text_style);
-    window.removeEventListener("beforeprint", this.before_print);
-    window.removeEventListener("afterprint", this.after_print);
+    this.initializeWebSocket();
   },
 
   computed: {
@@ -112,8 +111,151 @@ export default {
     }
   },
 
-
   methods: {
+
+  sendCursorPos(cursorPos) {
+    socket.send(JSON.stringify({
+        action: 'cursor_position_update',
+        cursorPos: cursorPos
+    }));
+  },
+
+
+  initializeWebSocket() 
+  {
+      this.socket = new WebSocket('ws://localhost:8082')
+      this.socket.onopen = () => {
+            this.socket.send(JSON.stringify({ action: 'requestIdentifier' }))
+      };
+
+      this.socket.onmessage = (event) => {
+          const receivedData = JSON.parse(event.data);
+
+            if (receivedData.identifier) 
+            {
+              this.currentUserId = receivedData.identifier
+              console.log("ID ", this.currentUserId)
+            }
+
+            if (receivedData.type === "cursor_update") 
+            {
+                const userId = receivedData.userId;
+                const cursorPos = receivedData.cursorPos;
+                this.$set(this.userCursors, userId, cursorPos); // Mettez à jour la position du curseur pour cet utilisateur
+            }
+            if (receivedData.type === "cursor_update" && receivedData.text) 
+            {
+                const userId = receivedData.userId; // L'ID de l'utilisateur qui a envoyé le texte
+                const cursorPos = receivedData.cursorPos; // La position du curseur de l'utilisateur qui a écrit le texte
+                const newText = receivedData.text; // Le texte écrit par l'utilisateur
+                
+                // Insérer le texte reçu à la position du curseur de l'utilisateur Y
+                if (userId !== this.currentUserId) {
+                  const contentDiv = this.$refs.content;
+                  const textBeforeCursor = contentDiv.textContent.slice(0, cursorPos);
+                  const textAfterCursor = contentDiv.textContent.slice(cursorPos);
+                  contentDiv.textContent = textBeforeCursor + newText + textAfterCursor;
+                }
+            }
+
+            else 
+            {
+         
+              if (receivedData.creator != undefined && receivedData.creator !== this.currentUserId ) 
+              {
+
+                  var id = receivedData.creator 
+
+                  var newElement = {
+                      creator : id,
+                      colorClass: receivedData.colorClass,
+                      data: receivedData.data
+
+                  }
+
+                  this.elements.push(newElement)
+                  const selectedCellProperty = document.querySelectorAll('.'+receivedData.colorClass)
+                  selectedCellProperty.forEach(cell => cell.classList.remove(receivedData.colorClass));
+                  this.hotInstance.getCell(receivedData.data.classList.add(receivedData.colorClass))       
+         
+              }
+            }
+
+      }
+
+  },
+
+
+  updateObjectById(arr, id, key, newValue) 
+  {
+    console.log("Array:", arr);
+      for (const obj of arr) 
+      {
+        if (obj.creator === id) 
+        {
+          obj[key] = newValue;
+          return;
+        }
+      }
+  },
+
+  emitNewContent() 
+  {
+      // Construire un message pour le serveur WebSocket
+      const message = {
+        type: 'content_update',
+        content: this.content,
+      };
+
+      // Envoyer le message au serveur WebSocket
+      this.$socket.sendObj(message);
+  },
+
+  getColorClass(identifier) {
+
+      const storedColor = localStorage.getItem(`user_${identifier}_color`);
+      if (storedColor) {
+        return storedColor;
+      }
+      // Get the list of already assigned color classes from localStorage
+      const assignedClassesJSON = localStorage.getItem('assigned_classes');
+      var assignedClasses = assignedClassesJSON ? JSON.parse(assignedClassesJSON) : {};
+      // Get the list of available color classes
+      const availableClasses = colorClasses.filter((colorClass) => !(colorClass in assignedClasses));
+      // If all classes are assigned, reset the assignedClasses object
+      if (availableClasses.length === 0) {
+        assignedClasses = {};
+      }
+      // Assign the first available class to the current identifier
+      const randomColorClass = availableClasses[0];
+      assignedClasses[randomColorClass] = identifier;
+      // Save the updated assignedClasses object to localStorage
+      localStorage.setItem('assigned_classes', JSON.stringify(assignedClasses));
+      // Save the assigned color class for the current identifier to localStorage
+      localStorage.setItem(`user_${identifier}_color`, randomColorClass);
+      return randomColorClass;
+},
+
+    updateContent(newContent) {
+      // Mettre à jour le contenu et ajuster les pages en conséquence
+      this.content = newContent;
+      this.resetContent();
+    },
+
+    input(e) 
+    {
+        if (!e) return;
+        this.fitContentOverPages();
+        this.emitNewContent(); // Envoyer la mise à jour du contenu
+        if (e.inputType !== 'insertText') this.processCurrentTextStyle();
+
+        const newText = e.data;
+        const cursorPosition = window.getSelection().getFocusOffset();
+
+        this.socket.send(JSON.stringify({ action: 'cursor_update', cursorPos: cursorPosition, text: newText }));
+
+    },
+
     // Computes a random 5-char UUID
     new_uuid: () => Math.random().toString(36).slice(-5),
 
@@ -565,7 +707,18 @@ export default {
     zoom: {
       handler () { this.update_pages_elts(); }
     }
-  }
+  },
+
+  beforeUpdate () {
+    this.pages_overlay_refs = [];
+  },
+
+  beforeUnmount () {
+    window.removeEventListener("resize", this.update_editor_width);
+    window.removeEventListener("click", this.process_current_text_style);
+    window.removeEventListener("beforeprint", this.before_print);
+    window.removeEventListener("afterprint", this.after_print);
+  },
 
 }
 </script>
@@ -578,6 +731,14 @@ body {
 }
 </style>
 <style scoped>
+.user-cursor {
+  position: absolute;
+  width: 2px;
+  height: 100%;
+  background-color: red; /* Couleur du curseur de l'utilisateur */
+  display: none; /* Masquer le curseur par défaut */
+  pointer-events: none; /* Ne pas interférer avec les interactions utilisateur */
+}
 .editor {
   display: block;
   -webkit-font-smoothing: antialiased;

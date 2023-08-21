@@ -1,0 +1,97 @@
+message "{
+
+"val":"{
+	\"id\":\"doc_3a6ez4dznx\",
+	\"id_ged\":\"ca22a34024c824b9fa68d5634fac66fe0144c42c\",
+	\"base\":\"999997\",
+	\"name\":\"2300.mdoc\",
+	\"pages\":1,
+	\"type\":\"mdoc\",
+	\"last_modifier\":\"2023/7/3\",
+	\"modify_by\":\"1479\",
+	\"url\":\"\",
+	\"create_by\":\"\",
+	\"create_at\":\"\",
+
+\"content\":{
+	\"body\":
+
+		{
+			\"format_pages\":\"A4\",
+			\"orientation\":\"portrait\",
+
+			\"pages\":[
+
+				{
+					\"id\":\"corp-page-1\",
+					\"order\":\"1\",
+
+					\"elements\":[
+
+						{
+							\"data\":\"fds kk&nbsp;\",
+							\"order\":1,
+							\"type\":\"text\",
+							\"id\":\"el_gslk3gjfj\",
+							\"styles\":\"champ __element text\"
+
+						}
+
+					],
+
+			\"numeroPage\":1,
+
+			\"maxpage\":1}
+
+			]},
+
+\"header\":{
+
+\"elements\":[
+
+{\"id\":\"el_56j7bsdkfs\",
+\"type\":\"h5\",
+\"order\":0,
+\"data\":\"\",
+\"styles\":\"champ __element h5 undefined\"}
+
+]},
+
+\"footer\":{
+
+\"elements\":[
+
+{
+\"id\":\"el_59dfsarebe\",
+\"type\":\"h5\",
+\"order\":0,
+\"data\":\"\",
+\"styles\":\"champ __element h5 undefined\"}
+]
+}
+}
+
+}",
+
+"route":"ca22a34024c824b9fa68d5634fac66fe0144c42c",
+"lineVal":"fds kk&nbsp;",
+"idLine":"el_gslk3gjfj",
+"pageID":"corp-page-1",
+"classElem":{
+
+"0":"champ",
+"1":"__element",
+"2":"text"
+
+},
+
+"format_doc":"",
+"doc_orientation":"",
+"orderPage":["page_1"],
+"allLineID":[],
+"isBody":"B",
+"pageRemoved":false,
+"nextSibling":false,
+"siblingID":"corp-page-1",
+"cursorPos":6,"charLength":1
+}"
